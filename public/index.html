@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Arial; margin: 20px; }
+.container { display: flex; gap: 40px; }
+.box { width: 50%; }
+</style>
+</head>
+
+<body>
+
+<h1>Energy Dashboard</h1>
+
+<div class="container">
+
+    <div class="box">
+        <canvas id="chart"></canvas>
+    </div>
+
+    <div class="box">
+
+        <h3>Live Daten</h3>
+
+        <div>Power: <span id="power">-</span> W</div>
+        <div>Voltage: <span id="voltage">-</span> V</div>
+
+    </div>
+
+</div>
+
+<script>
+
+const socket = io();
+
+
+// ----------------------------------
+// Chart vorbereiten
+// ----------------------------------
+const chart = new Chart(
+    document.getElementById("chart"),
+    {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "Stromverbrauch",
+                data: [],
+                tension: 0.2
+            }]
+        }
+    }
+);
+
+
+// ----------------------------------
+// History anfordern
+// ----------------------------------
+socket.emit("get_history");
+
+socket.on("history", (data) => {
+
+    chart.data.labels = data.map(e => e.datetime);
+    chart.data.datasets[0].data = data.map(e => e.ds0);
+
+    chart.update();
+});
+
+socket.on("history_error", console.error);
+
+
+// ----------------------------------
+// Live Daten
+// ----------------------------------
+socket.on("live_data", (data) => {
+
+    document.getElementById("power").innerText =
+        data.power.toFixed(1);
+
+    document.getElementById("voltage").innerText =
+        data.voltage.toFixed(1);
+});
+
+</script>
+
+</body>
+</html>

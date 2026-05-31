@@ -1,0 +1,121 @@
+      /* CSS-Styling */
+      body {
+        font-family: Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #e8e8e8;
+      }
+      #navigation {
+        height: 100vh;
+        width: 15%;
+        background-color: #e8e8e8;
+        float: left;
+      }
+      #tabelle-container {
+        table-layout: fixed;
+        text-align: left;
+        justify-content: center;
+        align-items: center;
+      }
+      #tabelle {
+        float: right;
+        width: 80%;
+        height: 50%;
+      }
+
+      #buttons {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-top: 20px;
+      }
+      .button {
+        width: 100%;
+        display: block;
+        text-decoration: none;
+        background-color: #b9d8e9;
+        cursor: pointer;
+      }
+      .hover-effect:hover {
+        background-color: #4CAFf0;
+        color: #fff;
+      }
+      .active-effect:active {
+        background-color: #eac614;
+        color: #fff;
+      }
+
+      .infocell {
+        background-color: #b9d8e9;
+        border-collapse: collapse;
+        border: 1px solid black;
+        width: 200px; 
+        height: 50px; 
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;        
+      }
+      .statcell {
+        background-color: #a6ea14;
+        border-collapse: collapse;
+        border: 1px solid black;
+        width: 200px; 
+        height: 50px; 
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;        
+      }
+      .cell {
+        background-color: #b9d8e9;
+        border-collapse: collapse;
+        border: 1px solid black;
+        width: 200px; 
+        height: 100px; 
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;        
+      }
+      #bilder {
+        float: right;
+        width: 80%;
+        height: 50%;
+      }
+      #bild1, #bild2 {
+        float: left;
+        width: 50%;
+        height: 100%;
+      }
+      #bild3, #bild4 {
+        float: right;
+        width: 50%;
+        height: 100%;
+      }
+    
+      .button.hover-effect:hover,
+      .button.active-effect:active,
+      button#submit-button:hover,
+      button#submit-button:active {
+        background-color: #4caff0;
+        color: #fff;
+      }
+      .button.active-effect:active,
+      button#submit-button:active {
+        background-color: #eac614;
+        color: #fff;
+      }
+		button#submit-button {
+      width: 50%;
+      display: block;
+      text-decoration: none;
+      background-color: #b9d8e9;
+      cursor: pointer;
+      font-size: 24px;
+		}
+    .value_alert{
+      color: red;
+    }
+    .value_norm{
+      color: black;
+    }
+    
