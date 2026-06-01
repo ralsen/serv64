@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home OS - Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .sidebar-item.active { background-color: white; color: #6366f1; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); font-weight: 600; }
+        .card { background: white; border-radius: 24px; border: 4px solid #e2e8f0; transition: all .2s; }
+        .time-btn.active { background-color: #6366f1; color: white; }
+        .category-header { cursor: pointer; }
+        .collapsed { display: none; }
+        ::-webkit-scrollbar { width: 0px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<aside class="w-72 bg-slate-100 border-r border-slate-200 p-4 flex flex-col shrink-0">
+    <div class="mb-12">
+        <h1 class="text-xl font-semibold tracking-tighter text-slate-900 flex items-center">
+            <span class="w-3 h-3 bg-indigo-500 rounded-full mr-10"></span>
+            Home<span class="font-light text-slate-400">Control</span>
+        </h1>
+    </div>
+
+    <nav class="space-y-4 flex-1 overflow-y-auto">
+        <button onclick="showOverview()" id="btn-overview"
+            class="sidebar-item w-full text-left px-5 py-3 rounded-2xl text-slate-500 active">
+        🏠 Übersicht 
+        </button>
+
+        <!-- Wetter -->
+        <div class="card p-3">
+            <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
+                 onclick="toggleCategory('weather')">
+                    🌦️ Wetter
+            </div>
+            <div id="nav-weather" class="space-y-1 mt-2"></div>
+        </div>
+
+        <!-- Räume -->
+        <div class="card p-3">
+            <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
+                 onclick="toggleCategory('rooms')">
+                Räume
+            </div>
+            <div id="nav-rooms" class="space-y-1 mt-2"></div>
+        </div>
+
+        <!-- Energie -->
+        <div class="card p-3">
+            <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
+                 onclick="toggleCategory('energy')">
+                🔋 Energie
+            </div>
+            <div id="nav-energy" class="space-y-1 mt-2 collapsed"></div>
+        </div>
+
+        <!-- System -->
+        <div class="card p-3">
+            <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
+                 onclick="toggleCategory('system')">
+                ⚙️ System
+            </div>
+            <div id="nav-system" class="space-y-1 mt-2 collapsed"></div>
+        </div>
+    </nav>
+
+    <div class="mt-auto pt-6 border-t border-slate-200 text-[10px] text-slate-400 uppercase tracking-widest text-center">
+        System: <span class="text-emerald-500 font-bold italic">Stable</span>
+    </div>
+</aside>
+
+<main class="flex-1 h-full overflow-y-auto p-8 md:p-12">
+    <header class="mb-12">
+        <h2 id="view-title" class="text-4xl font-light text-slate-900 tracking-tight">Dashboard</h2>
+        <p id="view-subtitle" class="text-slate-400 mt-1 font-medium uppercase text-[10px] tracking-[0.2em]">
+            Live-Status aller Systeme
+        </p>
+    </header>
+
+    <div id="content-area"></div>
+</main>
+
+<script>
+    const categoryStates = {
+        weather: true,
+        rooms: true,  // Standardmäßig aufgeklappt
+        energy: false,
+        system: false
+    };    
+
+    const homeData = {
+        "🌦️ Wetter": {
+            category: "weather",
+            temp: "20°C, Sonnig",
+            sunrise: "06:15",
+            sunset: "20:45",
+            hum: 65
+        },
+
+        "🛁 Badezimmer": {
+            category: "rooms",
+            temp: 22.5,
+            hum: 45,
+            air: "Gut",
+            window: "Geschlossen",
+            history: {
+                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
+                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
+                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
+                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
+            }
+        },
+
+        "🗃️ Büro": {
+            category: "rooms",
+            temp: 22.5,
+            hum: 45,
+            air: "Gut",
+            window: "Geschlossen",
+            history: {
+                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
+                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
+                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
+                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
+            }
+        },
+
+        "🪜 Dachboden": {
+            category: "rooms",
+            temp: 22.5,
+            hum: 45,
+            air: "Gut",
+            window: "Geschlossen",
+            history: {
+                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
+                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
+                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
+                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
+            }
+        },
+
+        "🚪 Jan": {
+            category: "rooms",
+            temp: 22.5,
+            hum: 45,
+            air: "Gut",
+            window: "Geschlossen",
+            history: {
+                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
+                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
+                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
+                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
+            }
+        },
+
+        "🚪 Lars": {
+            category: "rooms",
+            temp: 22.5,
+            hum: 45,
+            air: "Gut",
+            window: "Geschlossen",
+            history: {
+                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
+                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
+                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
+                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
+            }
+        },
+
+        "🛌 Schlafzimmer": {
+            category: "rooms",
+            temp: 18.2,
+            hum: 52,
+            air: "Frisch",
+            window: "Offen",
+            history: {
+                "Tag": { labels: ['00:00', '08:00', '16:00', 'Jetzt'], data: [19, 18, 17.5, 18.2] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [18, 17, 19, 18, 18, 17.5, 18.2] }
+            }
+        },
+
+        "🛋️ Wohnzimmer": {
+            category: "rooms",
+            temp: 22.5,
+            hum: 45,
+            air: "Gut",
+            window: "Geschlossen",
+            history: {
+                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
+                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
+                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
+                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
+            }
+        },
+
+        "⚡ Stromverbrauch": {
+            category: "energy",
+            powercons: 420,
+            history: {
+                "Tag": { labels: ['00:00', '06:00', '12:00', '18:00'], data: [300, 400, 450, 420] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [350, 400, 420, 380, 450, 410, 420] }
+            }
+        },
+
+        "☀️ PV Leistung": {
+            category: "energy",
+            power: 1200,
+            history: {
+                "Tag": { labels: ['00:00', '06:00', '12:00', '18:00'], data: [0, 500, 1200, 800] },
+                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [1000, 1100, 1200, 900, 1300, 800, 1200] }
+            }
+        },
+
+        "💻 CPU": {
+            category: "system",
+            core_temp: 55,
+            cpu_usage: 35
+        },
+
+        "💾 RAM Nutzung": {
+            category: "system",
+            RAM_usage: 68
+        },
+        "📊 DaBo": {
+            category: "system",
+            counter: "12345",
+            lastsender: "Ikke",
+            stores: "5"
+        }
+    };
+
+    let myChart = null;
+    let currentActiveItem = null;
+
+    // Mapping für Anzeigenamen und Einheiten
+    const displayNames = {
+        "temp": { name: "Temperatur", unit: "°C" },
+        "hum": { name: "Feuchtigkeit", unit: "%" },
+        "air": { name: "Luftqualität", unit: "" },
+        "window": { name: "Fensterstatus", unit: "" },
+        "powercons": { name: "Stromverbrauch", unit: " kWh" },
+        "power": { name: "PV-Leistung", unit: " W" },
+        "cpu_usage": { name: "CPU-Last", unit: "%" },
+        "core_temp": { name: "CPU-Temperatur", unit: "°C" },
+        "RAM_usage": { name: "RAM-Nutzung", unit: "%" },
+        "sunrise": { name: "Sonnenaufgang", unit: "" },
+        "sunset": { name: "Sonnenuntergang", unit: "" }
+    };
+
+    function init() {
+        const navRooms = document.getElementById('nav-rooms');
+        const navEnergy = document.getElementById('nav-energy');
+        const navSystem = document.getElementById('nav-system');
+        const navWeather = document.getElementById('nav-weather');
+
+        Object.keys(homeData).forEach(name => {
+            const btn = document.createElement('button');
+            btn.id = `btn-${name}`;
+            btn.className = "sidebar-item w-full text-left px-5 py-3 rounded-2xl text-slate-500";
+            btn.innerHTML = name;
+            btn.onclick = () => showDetailView(name);
+
+            const cat = homeData[name].category;
+
+            if (cat === "weather") navWeather.appendChild(btn);
+            else if (cat === "rooms") navRooms.appendChild(btn);
+            else if (cat === "energy") navEnergy.appendChild(btn);
+            else navSystem.appendChild(btn);
+        });
+
+        showOverview();
+    }
+
+    function toggleCategory(cat) {
+        const el = document.getElementById(`nav-${cat}`);
+        el.classList.toggle('collapsed');
+        categoryStates[cat] = !categoryStates[cat];
+        showOverview();
+    }
+
+    function showOverview() {
+        currentActiveItem = null;
+        updateSidebarActive('btn-overview');
+
+        document.getElementById('view-title').innerText = "Dashboard";
+        document.getElementById('view-subtitle').innerText = "Alle Sensoren im Blick";
+
+        // Prüfe, ob mindestens eine Kategorie aufgeklappt ist
+        const anyCategoryOpen = Object.values(categoryStates).some(state => state);
+
+        // Falls keine Kategorie aufgeklappt ist, zeige alle Einträge
+        const dataToShow = anyCategoryOpen
+            ? Object.fromEntries(
+                Object.entries(homeData).filter(([name, data]) => categoryStates[data.category])
+            )
+            : homeData;
+
+        let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
+
+        for (const [name, data] of Object.entries(dataToShow)) {
+            // Ersten Wert aus dem Objekt holen (außer category und history)
+            let firstValue = null;
+            let firstKey = null;
+            for (const [key, value] of Object.entries(data)) {
+                if (key !== "category" && key !== "history") {
+                    firstKey = key;
+                    firstValue = value;
+                    break;
+                }
+            }
+
+            // Einheit für den ersten Wert bestimmen
+            let unit = "";
+            if (displayNames[firstKey]) {
+                unit = displayNames[firstKey].unit;
+            }
+
+            // Falls der Wert bereits eine Einheit enthält, keine weitere hinzufügen
+            if (typeof firstValue === "string" && (firstValue.includes("°") || firstValue.includes("%") || firstValue.includes("W") || firstValue.includes("kWh"))) {
+                unit = "";
+            }
+
+            html += `
+                <div class="card p-6 cursor-pointer hover:shadow-lg"
+                    onclick="showDetailView('${name}')">
+                    <h3 class="font-semibold text-slate-700 mb-2">${name}</h3>
+                    <span class="text-3xl font-light">${firstValue}${unit}</span>
+                </div>`;
+        }
+
+        html += `</div>`;
+        document.getElementById('content-area').innerHTML = html;
+    } 
+       
+    function showDetailView(name) {
+        currentActiveItem = name;
+        updateSidebarActive(`btn-${name}`);
+
+        const data = homeData[name];
+
+        document.getElementById('view-title').innerText = name;
+
+        // Subtitle anpassen, je nach Kategorie
+        const category = data.category;
+        let subtitle = "Details";
+        if (category === "rooms") subtitle = "Detailanalyse & Verlauf";
+        else if (category === "energy") subtitle = "Energieverbrauch";
+        else if (category === "system") subtitle = "Systemstatus";
+        else if (category === "weather") subtitle = "Aktuelles Wetter";
+        document.getElementById('view-subtitle').innerText = subtitle;
+
+        // Zeit-Buttons nur anzeigen, wenn history vorhanden ist
+        const timeOptions = ["Tag", "Woche", "Monat", "Jahr", "2 Jahre"];
+        let timeButtons = timeOptions.map(opt =>
+            `<button onclick="updateChartData('${opt}')" id="tbtn-${opt}" class="time-btn px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all border border-slate-200 text-slate-400 hover:border-indigo-300">
+                ${opt}
+            </button>`
+        ).join('');
+
+        // Dynamische Kacheln generieren
+        let tilesHtml = '<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 text-center">';
+
+        for (const [key, value] of Object.entries(data)) {
+            // Skippe category und history
+            if (key === "category" || key === "history") continue;
+
+            // Anzeigenamen und Einheit aus dem Mapping holen
+            let displayName = displayNames[key]?.name || key;
+            let unit = displayNames[key]?.unit || "";
+
+            // Falls der Wert bereits eine Einheit enthält, keine weitere hinzufügen
+            if (typeof value === "string" && (value.includes("°") || value.includes("%") || value.includes("W") || value.includes("kWh"))) {
+                unit = "";
+            }
+
+            tilesHtml += `
+                <div class="card p-4">
+                    <p class="text-[10px] text-slate-400 font-bold uppercase">${displayName}</p>
+                    <p class="text-2xl">${value}${unit}</p>
+                </div>
+            `;
+        }
+        tilesHtml += '</div>';
+
+        // Chart nur anzeigen, wenn history vorhanden ist
+        let chartHtml = '';
+        if (data.history) {
+            // Chart-Titel dynamisch setzen
+            let chartTitle = "Verlauf";
+            if (category === "rooms") chartTitle = "Temperaturverlauf";
+            else if (category === "energy") chartTitle = "Energieverlauf";
+            else if (category === "system") chartTitle = "Systemverlauf";
+
+            chartHtml = `
+                <div class="card p-8">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">${chartTitle}</h4>
+                        <div class="flex space-x-2 bg-slate-50 p-1 rounded-2xl">
+                            ${timeButtons}
+                        </div>
+                    </div>
+                    <div class="h-[350px]">
+                        <canvas id="detailChart"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+
+        document.getElementById('content-area').innerHTML = tilesHtml + chartHtml;
+
+        // Chart initialisieren, falls history vorhanden ist
+        if (data.history) {
+            updateChartData("Tag");
+        }
+    }
+
+    function updateChartData(period) {
+        // UI Button Status
+        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+        const activeBtn = document.getElementById(`tbtn-${period}`);
+        if(activeBtn) activeBtn.classList.add('active');
+
+        if (!homeData[currentActiveItem].history) return;
+
+        const roomData = homeData[currentActiveItem].history[period] || homeData[currentActiveItem].history["Tag"];
+        renderChart(roomData.labels, roomData.data);
+    }
+
+    function renderChart(labels, dataPoints) {
+        const ctx = document.getElementById('detailChart').getContext('2d');
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataPoints,
+                    borderColor: '#6366f1',
+                    borderWidth: 4,
+                    tension: 0.4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#6366f1',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    backgroundColor: (context) => {
+                        const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, 350);
+                        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.15)');
+                        gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+                        return gradient;
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+                    y: {
+                        grid: { color: '#f1f5f9', drawBorder: false },
+                        border: { display: false },
+                        ticks: { font: { size: 10 }, color: '#94a3b8', callback: (val) => val + '°' }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateSidebarActive(activeId) {
+        document.querySelectorAll('.sidebar-item').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(activeId).classList.add('active');
+    }
+
+    init();
+</script>
+
+</body>
+</html>
