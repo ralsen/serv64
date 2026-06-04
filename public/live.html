@@ -20,7 +20,6 @@
 </head>
 <body class="flex h-screen overflow-hidden">
 
-<!-- ========== SIDEBAR (links) ========== -->
 <aside class="w-72 bg-slate-100 border-r border-slate-200 p-4 flex flex-col shrink-0">
     <div class="mb-12">
         <h1 class="text-xl font-semibold tracking-tighter text-slate-900 flex items-center">
@@ -35,7 +34,6 @@
             🏠 Übersicht
         </button>
 
-        <!-- Wetter -->
         <div class="card p-3">
             <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
                  onclick="toggleCategory('weather')">
@@ -44,7 +42,6 @@
             <div id="nav-weather" class="space-y-1 mt-2"></div>
         </div>
 
-        <!-- Räume -->
         <div class="card p-3">
             <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
                  onclick="toggleCategory('rooms')">
@@ -53,7 +50,6 @@
             <div id="nav-rooms" class="space-y-1 mt-2"></div>
         </div>
 
-        <!-- Energie -->
         <div class="card p-3">
             <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
                  onclick="toggleCategory('energy')">
@@ -62,7 +58,6 @@
             <div id="nav-energy" class="space-y-1 mt-2 collapsed"></div>
         </div>
 
-        <!-- System -->
         <div class="card p-3">
             <div class="category-header text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center"
                  onclick="toggleCategory('system')">
@@ -77,7 +72,6 @@
     </div>
 </aside>
 
-<!-- ========== HAUPTBEREICH (rechts) ========== -->
 <main class="flex-1 h-full overflow-y-auto p-8 md:p-12">
     <header class="mb-12">
         <h2 id="view-title" class="text-4xl font-light text-slate-900 tracking-tight">Dashboard</h2>
@@ -90,229 +84,128 @@
 </main>
 
 <script>
-// === Originale Datenstruktur und Anzeigenamen ===
+// === Konfiguration & Namen ===
 const displayNames = {
-    "temp": { name: "Temperatur", unit: "°C" },
+    "temp": { name: "Temperaturx", unit: "°C" },
     "hum": { name: "Feuchtigkeit", unit: "%" },
     "air": { name: "Luftqualität", unit: "" },
     "window": { name: "Fensterstatus", unit: "" },
     "power": { name: "PV-Leistung", unit: " W" },
     "voltage": { name: "Spannung", unit: " V" },
     "sunrise": { name: "Sonnenaufgang", unit: "" },
-    "sunset": { name: "Sonnenuntergang", unit: "" }
+    "sunset": { name: "Sonnenuntergang", unit: "" },
+    "ds0": { name: "Kanal 1 (ds0)", unit: " W" },
+    "ds1": { name: "Kanal 2 (ds1)", unit: " W" },
+    "ds2": { name: "Kanal 3 (ds2)", unit: " W" },
+    "ds3": { name: "Kanal 4 (ds3)", unit: " W" }
 };
 
-const categoryStates = {
-    weather: true,
-    rooms: true,  // Standardmäßig aufgeklappt
-    energy: false,
-    system: false
+const chartColors = {
+    "ds0": { border: '#6366f1', bg: 'rgba(99, 102, 241, 0.05)' },   // Indigo
+    "ds1": { border: '#10b981', bg: 'rgba(16, 185, 129, 0.05)' },   // Smaragdgrün
+    "ds2": { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.05)' },   // Bernstein
+    "ds3": { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.05)' }     // Rot
 };
 
-let myChart;
+const categoryStates = { weather: true, rooms: true, energy: false, system: false };
+let myChart = null;
 let currentActiveItem = null;
 
-// === Originale homeData (mit Demo-Daten) ===
 const homeData = {
-    "🌦️ Wetter": {
-        category: "weather",
-        temp: "20°C, Sonnig",
-        sunrise: "06:15",
-        sunset: "20:45",
-        hum: 65
-    },
+    "🌦️ Wetter": { category: "weather", temp: "20°C, Sonnig", sunrise: "06:15", sunset: "20:45", hum: 65 },
     "🛁 Badezimmer": {
-        category: "rooms",
-        temp: 22.5,
-        hum: 45,
-        air: "Gut",
-        window: "Geschlossen",
-        history: {
-                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
-                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
-                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
-                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
-                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
-        }
+        category: "rooms", temp: 22.5, hum: 85, air: "Gut", window: "offen",
+        history: { "Tag": { labels: ['00:00', '06:00', '12:00', '18:00', 'Jetzt'], data: [21, 21.5, 22.8, 22.5, 22.5] } }
     },
     "🗃️ Büro": {
-        category: "rooms",
-        temp: 22.5,
-        hum: 45,
-        air: "Gut",
-        window: "Geschlossen",
-        history: {
-                "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [21, 20.5, 21.5, 22.8, 23.1, 22.5, 22.5] },
-                "Woche": { labels: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'], data: [20, 22, 21, 23, 22, 24, 22.5] },
-                "Monat": { labels: ['Woche 1', 'Woche 2', 'Woche 3', 'Woche 4'], data: [21, 22, 21.5, 22.5] },
-                "Jahr": { labels: ['Jan', 'Mär', 'Mai', 'Jul', 'Sep', 'Nov'], data: [18, 19, 21, 24, 22, 19] },
-                "2 Jahre": { labels: ['2025', '2026'], data: [20.5, 21.2] }
-        }
+        category: "rooms", temp: 20.1, hum: 45, air: "mittel", window: "geschlossen",
+        history: { "Tag": { labels: ['00:00', '06:00', '12:00', '18:00', 'Jetzt'], data: [21, 21.5, 22.8, 22.5, 22.5] } }
     },
-
-    
     "🔋 PV-Anlage": {
-        category: "energy",
-        power: 150,
-        voltage: 230,
-        history: {
-            "Tag": { labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Jetzt'], data: [0, 50, 120, 180, 150, 80, 150] }
-        }
+        category: "energy", power: 0, voltage: 0,
+        history: { "Tag": { labels: [], datasetsData: {} } }
     }
 };
 
-// === Originalfunktionen ===
+// === Navigation & UI-Wechsel ===
 function toggleCategory(category) {
     categoryStates[category] = !categoryStates[category];
     document.getElementById(`nav-${category}`).classList.toggle('collapsed');
-    // Nach dem Ändern einer Kategorie die Übersicht aktualisieren
-    if (document.getElementById('view-title').innerText === 'Dashboard') {
-        showOverview();
-    }
+    if (document.getElementById('view-title').innerText === 'Dashboard') showOverview();
 }
 
 function showOverview() {
     currentActiveItem = null;
     updateSidebarActive('btn-overview');
-
     document.getElementById('view-title').innerText = "Dashboard";
     document.getElementById('view-subtitle').innerText = "Alle Sensoren im Blick";
 
-    // Prüfe, ob mindestens eine Kategorie aufgeklappt ist
     const anyCategoryOpen = Object.values(categoryStates).some(state => state);
-
-    // Falls keine Kategorie aufgeklappt ist, zeige alle Einträge
-    const dataToShow = anyCategoryOpen
-        ? Object.fromEntries(
-            Object.entries(homeData).filter(([name, data]) => categoryStates[data.category])
-        )
+    const dataToShow = anyCategoryOpen 
+        ? Object.fromEntries(Object.entries(homeData).filter(([_, d]) => categoryStates[d.category]))
         : homeData;
 
     let html = `<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">`;
-
     for (const [name, data] of Object.entries(dataToShow)) {
-        // Ersten Wert aus dem Objekt holen (außer category und history)
-        let firstValue = null;
-        let firstKey = null;
-        for (const [key, value] of Object.entries(data)) {
-            if (key !== "category" && key !== "history") {
-                firstKey = key;
-                firstValue = value;
-                break;
-            }
-        }
+        let firstKey = Object.keys(data).find(k => k !== "category" && k !== "history");
+        let firstValue = data[firstKey];
+        let unit = displayNames[firstKey]?.unit || "";
 
-        // Einheit für den ersten Wert bestimmen
-        let unit = "";
-        if (displayNames[firstKey]) {
-            unit = displayNames[firstKey].unit;
-        }
-
-        // Falls der Wert bereits eine Einheit enthält, keine weitere hinzufügen
-        if (typeof firstValue === "string" && (firstValue.includes("°") || firstValue.includes("%") || firstValue.includes("W") || firstValue.includes("V"))) {
-            unit = "";
-        }
-
-        // Erzeuge eine sichere ID für das Objekt (ohne Emojis und Leerzeichen)
-        const safeId = name.toLowerCase().replace(/[^a-z0-9]/g, '');
         html += `
-            <div class="card p-6 cursor-pointer hover:shadow-lg"
-                onclick="showDetailView('${name}')">
+            <div class="card p-6 cursor-pointer hover:shadow-lg" onclick="showDetailView('${name}')">
                 <h3 class="font-semibold text-slate-700 mb-2">${name}</h3>
                 <p class="text-2xl font-bold text-slate-900">${firstValue}${unit}</p>
                 <p class="text-xs text-slate-400 mt-1">${displayNames[firstKey]?.name || firstKey}</p>
             </div>
         `;
     }
-
     html += `</div>`;
     document.getElementById('content-area').innerHTML = html;
 }
 
 function showDetailView(name) {
     currentActiveItem = name;
-    // Erzeuge eine sichere ID für die Sidebar
     const safeId = `btn-${name.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
     updateSidebarActive(safeId);
 
     const data = homeData[name];
     document.getElementById('view-title').innerText = name;
+    document.getElementById('view-subtitle').innerText = "Detailanalyse & Echtzeit-Verlauf";
 
-    // Subtitle anpassen, je nach Kategorie
-    const category = data.category;
-    let subtitle = "Details";
-    if (category === "rooms") subtitle = "Detailanalyse & Verlauf";
-    else if (category === "energy") subtitle = "Energieverbrauch";
-    else if (category === "system") subtitle = "Systemstatus";
-    else if (category === "weather") subtitle = "Aktuelles Wetter";
-    document.getElementById('view-subtitle').innerText = subtitle;
-
-    // Zeit-Buttons nur anzeigen, wenn history vorhanden ist
-    const timeOptions = Object.keys(data.history || {});
-    let timeButtons = '';
-    if (timeOptions.length > 0) {
-        timeButtons = timeOptions.map(opt =>
-            `<button onclick="updateChartData('${name}', '${opt}')"
-                     class="time-btn px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-xl transition-all border border-slate-200 text-slate-400 hover:border-indigo-300">
-                ${opt}
-            </button>`
-        ).join('');
-    }
-
-    // Dynamische Kacheln generieren
     let tilesHtml = '<div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 text-center">';
-
     for (const [key, value] of Object.entries(data)) {
-        // Skippe category und history
         if (key === "category" || key === "history") continue;
-
-        // Anzeigenamen und Einheit aus dem Mapping holen
-        let displayName = displayNames[key]?.name || key;
-        let unit = displayNames[key]?.unit || "";
-
-        // Falls der Wert bereits eine Einheit enthält, keine weitere hinzufügen
-        if (typeof value === "string" && (value.includes("°") || value.includes("%") || value.includes("W") || value.includes("V"))) {
-            unit = "";
-        }
-
         tilesHtml += `
             <div class="card p-4">
-                <p class="text-[10px] text-slate-400 font-bold uppercase">${displayName}</p>
-                <p class="text-2xl">${value}${unit}</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase">${displayNames[key]?.name || key}</p>
+                <p class="text-2xl">${value}${displayNames[key]?.unit || ""}</p>
             </div>
         `;
     }
     tilesHtml += '</div>';
 
-    // Chart nur anzeigen, wenn history vorhanden ist
     let chartHtml = '';
     if (data.history) {
-        let chartTitle = "Verlauf";
-        if (category === "rooms") chartTitle = "Temperaturverlauf";
-        else if (category === "energy") chartTitle = "Energieverlauf";
-        else if (category === "system") chartTitle = "Systemverlauf";
-
         chartHtml = `
             <div class="card p-8">
                 <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">${chartTitle}</h4>
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Live Messkurven</h4>
                     <div class="flex space-x-2 bg-slate-50 p-1 rounded-2xl">
-                        ${timeButtons}
+                        <button class="time-btn active px-4 py-2 text-[10px] font-bold uppercase tracking-widest rounded-xl">Echtzeit (Tag)</button>
                     </div>
                 </div>
-                <div class="h-[350px]">
-                    <canvas id="detailChart"></canvas>
-                </div>
+                <div class="h-[350px]"><canvas id="detailChart"></canvas></div>
             </div>
         `;
     }
 
     document.getElementById('content-area').innerHTML = tilesHtml + chartHtml;
 
-    // Chart initialisieren, falls history vorhanden ist
-    if (data.history) {
-        // Standardmäßig ersten Zeitbereich anzeigen
-        updateChartData(name, timeOptions[0]);
+    if (name === '🔋 PV-Anlage') {
+        console.log('Lade Historie für PV-Anlage...');
+        socket.emit('get_history');
+    } else if (data.history) {
+        updateChartData(name, "Tag");
     }
 }
 
@@ -321,49 +214,53 @@ function updateChartData(name, timeRange) {
     if (!data.history || !data.history[timeRange]) return;
 
     const chartData = data.history[timeRange];
-    const ctx = document.getElementById('detailChart').getContext('2d');
+    if (!chartData.labels || chartData.labels.length === 0) return;
 
-    // Chart zerstören, falls bereits vorhanden
-    if (myChart) {
-        myChart.destroy();
+    const ctx = document.getElementById('detailChart').getContext('2d');
+    if (myChart) { myChart.destroy(); }
+
+    let datasets = [];
+
+    if (chartData.datasetsData) {
+        Object.keys(chartData.datasetsData).forEach(ch => {
+            const colors = chartColors[ch] || { border: '#6366f1', bg: 'transparent' };
+            datasets.push({
+                label: displayNames[ch]?.name || ch,
+                data: chartData.datasetsData[ch],
+                borderColor: colors.border,
+                borderWidth: 3,
+                tension: 0.3,
+                pointRadius: 0,          // Kringel standardmäßig aus
+                pointHoverRadius: 6,     // Erscheint beim Hovern
+                fill: true,
+                backgroundColor: colors.bg
+            });
+        });
+    } else {
+        // Fallback für statische Demo-Räume
+        datasets.push({
+            label: 'Temperatur',
+            data: chartData.data,
+            borderColor: '#6366f1',
+            borderWidth: 4,
+            tension: 0.4,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            fill: true,
+            backgroundColor: 'rgba(99, 102, 241, 0.15)'
+        });
     }
 
-    // Chart erstellen
     myChart = new Chart(ctx, {
         type: 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: [{
-                label: displayNames[Object.keys(data).find(key => key !== "category" && key !== "history")]?.name || 'Wert',
-                data: chartData.data,
-                borderColor: '#6366f1',
-                borderWidth: 4,
-                tension: 0.4,
-                pointBackgroundColor: '#fff',
-                pointBorderColor: '#6366f1',
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                fill: true,
-                backgroundColor: (context) => {
-                    const gradient = context.chart.ctx.createLinearGradient(0, 0, 0, 350);
-                    gradient.addColorStop(0, 'rgba(99, 102, 241, 0.15)');
-                    gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
-                    return gradient;
-                }
-            }]
-        },
+        data: { labels: chartData.labels, datasets: datasets },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: true } },
+            plugins: { legend: { display: true, labels: { boxWidth: 12, font: { size: 11 } } } },
             scales: {
-                x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
-                y: {
-                    grid: { color: '#f1f5f9', drawBorder: false },
-                    border: { display: false },
-                    ticks: { font: { size: 10 }, color: '#94a3b8' }
-                }
+                x: { grid: { display: false }, ticks: { font: { size: 10 }, color: '#94a3b8' } },
+                y: { grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 }, color: '#94a3b8' } }
             }
         }
     });
@@ -371,83 +268,106 @@ function updateChartData(name, timeRange) {
 
 function updateSidebarActive(activeId) {
     document.querySelectorAll('.sidebar-item').forEach(btn => btn.classList.remove('active'));
-    // Füge die ID zu den Buttons hinzu, falls sie nicht existiert
     const btn = document.getElementById(activeId);
-    if (btn) {
-        btn.classList.add('active');
-    }
+    if (btn) btn.classList.add('active');
 }
 
 function init() {
-    // Sidebar mit Kategorien und Geräten füllen (mit IDs für die Buttons)
-    Object.keys(categoryStates).forEach(category => {
-        const navElement = document.getElementById(`nav-${category}`);
-        if (category === 'weather') {
-            navElement.innerHTML = '<button onclick="showDetailView(\'🌦️ Wetter\')" id="btn-wetter" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🌦️ Wetter</button>';
-        } else if (category === 'rooms') {
-            navElement.innerHTML = `
-                <button onclick="showDetailView('🛁 Badezimmer')" id="btn-badezimmer" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🛁 Badezimmer</button>
-                <button onclick="showDetailView('🗃️ Büro')" id="btn-buro" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🗃️ Büro</button>
-            `;
-        } else if (category === 'energy') {
-            navElement.innerHTML = '<button onclick="showDetailView(\'🔋 PV-Anlage\')" id="btn-pv-anlage" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🔋 PV-Anlage</button>';
-        } else if (category === 'system') {
-            navElement.innerHTML = '<button onclick="showDetailView(\'⚙️ System\')" id="btn-system" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">⚙️ System</button>';
-        }
-    });
-
-    // Standardmäßig Übersicht anzeigen
+    document.getElementById('nav-weather').innerHTML = '<button onclick="showDetailView(\'🌦️ Wetter\')" id="btn-wetter" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🌦️ Wetter</button>';
+    document.getElementById('nav-rooms').innerHTML = `<button onclick="showDetailView('🛁 Badezimmer')" id="btn-badezimmer" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🛁 Badezimmer</button><button onclick="showDetailView('🗃️ Büro')" id="btn-buro" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🗃️ Büro</button>`;
+    document.getElementById('nav-energy').innerHTML = '<button onclick="showDetailView(\'🔋 PV-Anlage\')" id="btn-pv-anlage" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">🔋 PV-Anlage</button>';
+    document.getElementById('nav-system').innerHTML = '<button onclick="showDetailView(\'⚙️ System\')" id="btn-system" class="sidebar-item w-full text-left px-5 py-2 rounded-xl text-slate-500">⚙️ System</button>';
     showOverview();
 }
 
-// === Dynamische Datenintegration (RRD-Daten für Energie) ===
+// ==========================================
+// WEEBSOCKETS LIVE UPDATES (MÖGLICHKEIT 1)
+// ==========================================
 const socket = io();
 
-// Socket.IO: Live-Daten für Energie
 socket.on('live_data', (data) => {
     if (data.power !== undefined) {
-        // Aktualisiere die Anzeige in homeData
         if (homeData['🔋 PV-Anlage']) {
             homeData['🔋 PV-Anlage'].power = parseInt(data.power);
             homeData['🔋 PV-Anlage'].voltage = parseInt(data.voltage);
         }
-        // Falls die Übersicht angezeigt wird, aktualisiere sie
+        
         if (document.getElementById('view-title').innerText === 'Dashboard') {
             showOverview();
         }
-        // Falls die Detailansicht für PV-Anlage angezeigt wird, aktualisiere sie
+        
         if (currentActiveItem === '🔋 PV-Anlage') {
-            showDetailView('🔋 PV-Anlage');
+            // Textkacheln updaten
+            const cards = document.getElementById('content-area').querySelectorAll('.card p:last-child');
+            if (cards.length >= 2) {
+                cards[0].innerText = parseInt(data.power) + " W";
+                cards[1].innerText = parseInt(data.voltage) + " V";
+            }
+
+            // SEKTÜNDLICHER LIVE-PUSH INS CHART
+            if (myChart && homeData['🔋 PV-Anlage'].history && homeData['🔋 PV-Anlage'].history["Tag"]) {
+                const nowTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                
+                // Neue X-Achsen-Zeit hinzufügen
+                myChart.data.labels.push(nowTime);
+                
+                // Die echten Live-Werte auf die 4 Kanäle splitten (Beispielhaft skaliert)
+                const currentLiveValues = {
+                    "ds0": data.power,
+                    "ds1": data.power * 0.8,
+                    "ds2": data.power * 0.5,
+                    "ds3": data.power * 0.2
+                };
+
+                // Datenpunkte sekündlich anhängen
+                myChart.data.datasets.forEach((dataset, idx) => {
+                    const channelKey = Object.keys(chartColors)[idx]; 
+                    if (channelKey && currentLiveValues[channelKey] !== undefined) {
+                        dataset.data.push(currentLiveValues[channelKey]);
+                    }
+                });
+
+                // Begrenzung: Diagramm scrollt nach links, wenn mehr als 100 Live-Punkte drin sind
+                if (myChart.data.labels.length > 100) {
+                    myChart.data.labels.shift();
+                    myChart.data.datasets.forEach(d => d.data.shift());
+                }
+
+                myChart.update('none'); // Flackerfreies und performantes Update
+            }
         }
     }
 });
 
-// REST-API: History-Daten für Energie-Charts
-async function fetchEnergyHistory() {
-    try {
-        const response = await fetch('/api/history');
-        const data = await response.json();
-        if (data.history && homeData['🔋 PV-Anlage']) {
-            homeData['🔋 PV-Anlage'].history = {
-                "Tag": {
-                    labels: data.history.map(item => new Date(item.timestamp * 1000).toLocaleTimeString()),
-                    data: data.history.map(item => item.power)
-                }
-            };
-            // Falls die Detailansicht für PV-Anlage angezeigt wird, aktualisiere den Chart
-            if (currentActiveItem === '🔋 PV-Anlage') {
-                showDetailView('🔋 PV-Anlage');
+// Historische RRD-Basisdaten von Python empfangen
+socket.on('get_history', (rrdData) => {
+    console.log("RRD Basis-Daten geladen:", rrdData);
+    if (!rrdData || rrdData.error || rrdData.length === 0) return;
+
+    const firstRow = rrdData.find(item => item !== null);
+    const channels = Object.keys(firstRow).filter(k => k.startsWith('ds'));
+
+    if (homeData['🔋 PV-Anlage']) {
+        homeData['🔋 PV-Anlage'].history = {
+            "Tag": {
+                labels: rrdData.map(item => new Date(item.timestamp * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+                datasetsData: {}
             }
+        };
+
+        channels.forEach(ch => {
+            homeData['🔋 PV-Anlage'].history["Tag"].datasetsData[ch] = rrdData.map(item => {
+                return (item[ch] !== null && !isNaN(item[ch])) ? item[ch] : 0;
+            });
+        });
+
+        if (currentActiveItem === '🔋 PV-Anlage') {
+            updateChartData('🔋 PV-Anlage', 'Tag');
         }
-    } catch (error) {
-        console.error('Fehler beim Laden der History-Daten:', error);
     }
-}
+});
 
-// Initial laden
 init();
-fetchEnergyHistory();
 </script>
-
 </body>
 </html>

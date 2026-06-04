@@ -3,9 +3,7 @@ import datetime
 import json
 import sys
 
-
 def fetch_rrd(filename, start="-1d", end="now", cf="AVERAGE"):
-
     cmd = [
         "rrdtool",
         "fetch",
@@ -28,7 +26,6 @@ def fetch_rrd(filename, start="-1d", end="now", cf="AVERAGE"):
     data = []
 
     for line in lines[2:]:
-
         if ":" not in line:
             continue
 
@@ -44,17 +41,18 @@ def fetch_rrd(filename, start="-1d", end="now", cf="AVERAGE"):
         values = values.split()
 
         for i, v in enumerate(values):
-            try:
-                row[header[i]] = float(v)
-            except:
+            # Der einfache Trick: Wenn rrdtool "nan" liefert, direkt None setzen
+            if v.lower() == "nan":
                 row[header[i]] = None
+            else:
+                try:
+                    row[header[i]] = float(v)
+                except:
+                    row[header[i]] = None
 
         data.append(row)
 
     return data
 
-
 file = sys.argv[1]
-file = 'ShellyPStripG4-98A3167B61A0.rrd'
-
 print(json.dumps(fetch_rrd(file)))
