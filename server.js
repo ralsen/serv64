@@ -52,7 +52,7 @@ socket.on('get_history', () => {
         logger.info('get_history Event empfangen. Starte RRD-Skript...');
         
         exec(
-            'python3 read_rrd.py ShellyPStripG4-98A3167B61A0.rrd',
+            'python3 read_rrd.py ShellyPStripG4-98A3167B61A0.rrd -1m now',
             (error, stdout, stderr) => {
                 // Falls beim Ausführen des Skripts (z.B. Datei nicht gefunden) ein Fehler auftritt
                 if (error) {

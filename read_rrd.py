@@ -3,7 +3,7 @@ import datetime
 import json
 import sys
 
-def fetch_rrd(filename, start="-1d", end="now", cf="AVERAGE"):
+def fetch_rrd(filename, start="-1w", end="now", cf="AVERAGE"):
     cmd = [
         "rrdtool",
         "fetch",
@@ -55,4 +55,6 @@ def fetch_rrd(filename, start="-1d", end="now", cf="AVERAGE"):
     return data
 
 file = sys.argv[1]
-print(json.dumps(fetch_rrd(file)))
+start = sys.argv[2] if len(sys.argv) > 2 else "-1w"
+end = sys.argv[3] if len(sys.argv) > 3 else "now"
+print(json.dumps(fetch_rrd(file, start, end)))
